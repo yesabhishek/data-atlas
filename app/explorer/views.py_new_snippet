@@ -1,0 +1,44 @@
+def schema_view(request, connection_id):
+    connection = get_object_or_404(ConnectionProfile, id=connection_id)
+    try:
+        adapter = ConnectionFactory.get_adapter(connection.db_type, connection.credentials)
+        schema = adapter.get_schema()
+        # schema for PG is {table: [cols]}, Mongo {col: [fields]}
+        # We want to render a list of tables/collections
+        return render(request, 'explorer/schema.html', {'connection': connection, 'schema': schema})
+    except Exception as e:
+        messages.error(request, f"Error fetching schema: {str(e)}")
+        return redirect('explorer:index')
+
+def table_view(request, connection_id, table_name):
+    connection = get_object_or_404(ConnectionProfile, id=connection_id)
+    try:
+        adapter = ConnectionFactory.get_adapter(connection.db_type, connection.credentials)
+        # We need a method to get data. validate_query or specific fetch method?
+        # execute_query is generic. For PG "SELECT * FROM table LIMIT 50".
+        # For others it varies.
+        # Let's add a helper in adapter or just construct query here?
+        # Constructing query here is easier for POC.
+        
+        if connection.db_type == 'postgres':
+             query = f'SELECT * FROM "{table_name}" LIMIT 50'
+             results = adapter.execute_query(query)
+        elif connection.db_type == 'mongodb':
+             query = json.dumps({"collection": table_name, "filter": {}, "limit": 50})
+             results = adapter.execute_query(query)
+        # Vector DBs usually don't have "tables" in same way, but collection list works.
+        elif connection.db_type in ['chromadb', 'weaviate', 'milvus']:
+             # Vector DB browse might need specific logic or just "query"
+             # For POC let's just show top 10 if possible or redirect to query
+             messages.info(request, "Browsing not fully implemented for Vector DBs, use Query interface.")
+             return redirect('explorer:query', connection_id=connection.id)
+        
+        return render(request, 'explorer/table_data.html', {
+            'connection': connection, 
+            'table_name': table_name, 
+            'results': results
+        })
+
+    except Exception as e:
+        messages.error(request, f"Error loading table data: {str(e)}")
+        return redirect('explorer:schema', connection_id=connection.id)

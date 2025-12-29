@@ -1,0 +1,39 @@
+{% extends 'explorer/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Data: {{ table_name }} (Top 50)</h2>
+        <div>
+            <a href="{% url 'explorer:schema' connection.id %}" class="btn" style="margin-right:1rem;">Back to
+                Schema</a>
+            <a href="{% url 'explorer:query' connection.id %}" class="btn">Run Custom Query</a>
+        </div>
+    </div>
+
+    {% if results %}
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    {% for key in results.0.keys %}
+                    <th>{{ key }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results %}
+                <tr>
+                    {% for value in row.values %}
+                    <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-secondary); font-style: italic;">No data found.</p>
+    {% endif %}
+</div>
+{% endblock %}

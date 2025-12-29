@@ -1,0 +1,14 @@
+[project]
+name = "data-atlas"
+version = "0.1.0"
+description = "AData Atlas is a modern, unified interface for exploring and querying multiple types of databases. It provides an UI to manage connections, browse schemas, and execute queries across Relational (Postgres), Document (MongoDB), and Vector (ChromaDB, Weaviate, Milvus) databases."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.4.0",
+    "django>=6.0",
+    "psycopg2-binary>=2.9.11",
+    "pymilvus>=2.6.5",
+    "pymongo>=4.15.5",
+    "weaviate-client>=4.19.0",
+]

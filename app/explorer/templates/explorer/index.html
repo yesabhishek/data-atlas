@@ -1,0 +1,112 @@
+{% extends 'explorer/base.html' %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+    <div>
+        <h2>Active Connections</h2>
+        {% if connections %}
+        <div style="display: grid; gap: 1rem;">
+            {% for conn in connections %}
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex-grow: 1;">
+                        <h3 style="margin: 0 0 0.5rem 0;">{{ conn.name }}</h3>
+                        <span
+                            style="background: var(--accent); color: var(--bg-color); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">
+                            {{ conn.get_db_type_display }}
+                        </span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <a href="{% url 'explorer:schema' conn.id %}"><button
+                                style="background:transparent; border:1px solid var(--accent); color:var(--accent);">Explore</button></a>
+                        <a href="{% url 'explorer:query' conn.id %}"><button>Query</button></a>
+                        <form method="post" action="{% url 'explorer:delete_connection' conn.id %}"
+                            onsubmit="return confirm('Are you sure?');" style="margin:0;">
+                            {% csrf_token %}
+                            <button type="submit"
+                                style="background: #ff4d4d; color: white; border: none; padding: 0.5rem;">X</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No connections yet. Add one to get started.</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="card">
+            <h2>Add New Connection</h2>
+            <form method="post" action="{% url 'explorer:add_connection' %}">
+                {% csrf_token %}
+                <label>Name</label>
+                {{ form.name }}
+                <label>Database Type</label>
+                {{ form.db_type }}
+
+                <div id="dynamic-fields"
+                    style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <!-- Wrapped fields for JS toggling -->
+                    <div id="div_host" class="field-wrapper"><label>Host</label>{{ form.host }}</div>
+                    <div id="div_port" class="field-wrapper"><label>Port</label>{{ form.port }}</div>
+                    <div id="div_database" class="field-wrapper"><label>Database Name</label>{{ form.database }}</div>
+                    <div id="div_username" class="field-wrapper"><label>Username</label>{{ form.username }}</div>
+                    <div id="div_password" class="field-wrapper"><label>Password</label>{{ form.password }}</div>
+                    <div id="div_sslmode" class="field-wrapper"><label>SSL Mode</label>{{ form.sslmode }}</div>
+
+                    <div id="div_mongo_uri" class="field-wrapper"><label>SSL Mode</label>{{ form.sslmode }}</div>
+
+                    <div id="div_mongo_uri" class="field-wrapper">
+                        <label>MongoDB URI</label>
+                        {{ form.mongo_uri }}
+                        <small style="display:block; color:#888; margin-bottom:0.5rem;">e.g.,
+                            mongodb://localhost:27017/mydb</small>
+                    </div>
+
+                    <div id="div_weaviate_url" class="field-wrapper"><label>Weaviate Cluster URL</label>
+                        {{ form.weaviate_url }}</div>
+
+                    <div id="div_path" class="field-wrapper"><label>Path</label>{{ form.path }}</div>
+                    <div id="div_api_key" class="field-wrapper"><label>API Key</label>{{ form.api_key }}</div>
+                </div>
+
+                <button type="submit" style="margin-top: 1rem;">Add Connection</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const dbTypeSelect = document.getElementById('id_db_type');
+
+        function updateFields() {
+            const selected = dbTypeSelect.value;
+
+            const map = {
+                'postgres': ['div_host', 'div_port', 'div_database', 'div_username', 'div_password', 'div_sslmode'],
+                'mongodb': ['div_mongo_uri', 'div_host', 'div_port', 'div_database', 'div_username', 'div_password'],
+                'chromadb': ['div_path', 'div_host', 'div_port'],
+                'weaviate': ['div_weaviate_url', 'div_api_key'],
+                'milvus': ['div_host', 'div_port']
+            };
+
+            // Hide all first
+            document.querySelectorAll('.field-wrapper').forEach(el => el.style.display = 'none');
+
+            const fieldsToShow = map[selected] || [];
+            fieldsToShow.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'block';
+            });
+        }
+
+        if (dbTypeSelect) {
+            dbTypeSelect.addEventListener('change', updateFields);
+            updateFields(); // Init
+        }
+    });
+</script>
+{% endblock %}
