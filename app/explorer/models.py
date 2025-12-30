@@ -11,8 +11,49 @@ class ConnectionProfile(models.Model):
         ('weaviate', 'Weaviate'),
         ('milvus', 'Milvus'),
     ])
-    credentials = models.JSONField(help_text="JSON containing host, port, etc.")
+    encrypted_credentials = models.TextField(blank=True, null=True, help_text="Encrypted credentials string")
+    schema_metadata = models.JSONField(default=dict, blank=True, help_text="Cached schema information")
+    session_id = models.CharField(max_length=40, db_index=True, null=True, blank=True, help_text="Django Session Key")
+    # user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True) # Removing user
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.name} ({self.db_type})"
+
+    def set_credentials(self, creds_dict):
+        """Encrypts and stores credentials."""
+        import json
+        from cryptography.fernet import Fernet
+        from django.conf import settings
+        import base64
+        
+        # Ensure we have a valid key. For POC using a fixed dev key derivation if not set.
+        # In prod, settings.SECRET_KEY should be 32 url-safe base64 bytes or we hash it.
+        # Simple derivation:
+        key = base64.urlsafe_b64encode(settings.SECRET_KEY[:32].encode().ljust(32, b'x'))
+        f = Fernet(key)
+        
+        json_str = json.dumps(creds_dict)
+        encrypted = f.encrypt(json_str.encode())
+        self.encrypted_credentials = encrypted.decode()
+        self.credentials = None # Clear raw json if present
+
+    def get_credentials(self):
+        """Decrypts and returns credentials dict."""
+        import json
+        from cryptography.fernet import Fernet
+        from django.conf import settings
+        import base64
+
+        if not self.encrypted_credentials:
+            return {}
+            
+        key = base64.urlsafe_b64encode(settings.SECRET_KEY[:32].encode().ljust(32, b'x'))
+        f = Fernet(key)
+        
+        try:
+            decrypted = f.decrypt(self.encrypted_credentials.encode())
+            return json.loads(decrypted.decode())
+        except Exception:
+            return {} # Fail safe
+

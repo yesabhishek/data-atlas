@@ -14,7 +14,7 @@
         <button type="button" class="tab-btn" onclick="switchTab('nl')">Natural Language</button>
     </div>
 
-    <form method="post" id="query-form">
+    <form method="post" id="query-form" onsubmit="return handleQuerySubmit(event)">
         {% csrf_token %}
         <input type="hidden" name="mode" id="query-mode" value="raw">
 
@@ -97,6 +97,39 @@
         if (mode === 'raw' && editor) {
             setTimeout(() => editor.refresh(), 10);
         }
+    }
+
+    function handleQuerySubmit(event) {
+        // Check for destructive queries
+        const mode = document.getElementById('query-mode').value;
+        let query = "";
+
+        if (mode === 'raw') {
+            if (editor) editor.save(); // Sync CM to textarea
+            query = document.getElementById('code-editor').value;
+        } else {
+            // NL mode
+            // For now NL implies read usually, but if it translates to DROP... 
+            // We can't easily check NL string. Assume safe or warn?
+            // Let's check raw mostly.
+            return true;
+        }
+
+        const upperQuery = query.toUpperCase();
+        if (upperQuery.includes('DELETE') || upperQuery.includes('DROP')) {
+            const dontAsk = localStorage.getItem('data-atlas-skip-confirm');
+            if (dontAsk === 'true') return true;
+
+            const confirmed = confirm("WARNING: You are about to run a destructive query (DELETE or DROP).\n\nAre you sure you want to proceed?");
+            if (confirmed) {
+                const suppressFuture = confirm("Do you want to suppress this warning in the future?");
+                if (suppressFuture) {
+                    localStorage.setItem('data-atlas-skip-confirm', 'true');
+                }
+            }
+            return confirmed;
+        }
+        return true;
     }
 </script>
 

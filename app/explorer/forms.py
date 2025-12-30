@@ -25,33 +25,12 @@ class ConnectionProfileForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         db_type = cleaned_data.get('db_type')
+        credentials = {}
         
         # Validation logic based on db_type
         if db_type == 'postgres':
             if not all([cleaned_data.get('host'), cleaned_data.get('port'), cleaned_data.get('database'), cleaned_data.get('username')]):
-                # Host/Port/User/DB required
-                pass # Rely on frontend or strict check? Let's keep it strict.
                 if not cleaned_data.get('host'): self.add_error('host', 'Required for Postgres')
-        elif db_type == 'mongodb':
-            if not cleaned_data.get('mongo_uri'):
-                 # Fallback to host/port? Let's encourage URI.
-                 if not cleaned_data.get('host'):
-                     raise forms.ValidationError("MongoDB URI (preferred) or Host is required.")
-        elif db_type == 'weaviate':
-            if not cleaned_data.get('weaviate_url') and not cleaned_data.get('host'): 
-                # host check for local? Weaviate usually URL.
-                raise forms.ValidationError("Weaviate Cluster URL is required.")
-        
-        return cleaned_data
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        cleaned_data = self.cleaned_data
-        credentials = {}
-        
-        db_type = instance.db_type
-        
-        if db_type == 'postgres':
             credentials = {
                 'host': cleaned_data.get('host'),
                 'port': cleaned_data.get('port'),
@@ -61,35 +40,48 @@ class ConnectionProfileForm(forms.ModelForm):
                 'sslmode': cleaned_data.get('sslmode'),
             }
         elif db_type == 'mongodb':
-            # Prefer URI
+            if not cleaned_data.get('mongo_uri') and not cleaned_data.get('host'):
+                 raise forms.ValidationError("MongoDB URI (preferred) or Host is required.")
             if cleaned_data.get('mongo_uri'):
-                credentials['connection_string'] = cleaned_data.get('mongo_uri')
+                credentials = {'connection_string': cleaned_data.get('mongo_uri')}
                 if cleaned_data.get('database'):
                     credentials['database_name'] = cleaned_data.get('database')
             else:
-                credentials.update({
+                credentials = {
                     'host': cleaned_data.get('host'),
                     'port': cleaned_data.get('port'),
                     'username': cleaned_data.get('username'),
                     'password': cleaned_data.get('password'),
-                })
-                credentials['database_name'] = cleaned_data.get('database')
+                }
+                if cleaned_data.get('database'):
+                    credentials['database_name'] = cleaned_data.get('database')
+        elif db_type == 'weaviate':
+            if not cleaned_data.get('weaviate_url') and not cleaned_data.get('host'): 
+                raise forms.ValidationError("Weaviate Cluster URL is required.")
+            if cleaned_data.get('weaviate_url'):
+                credentials = {'url': cleaned_data.get('weaviate_url')}
+            if cleaned_data.get('api_key'):
+                credentials['api_key'] = cleaned_data.get('api_key')
         elif db_type == 'chromadb':
+            credentials = {}
             if cleaned_data.get('path'):
                 credentials['path'] = cleaned_data.get('path')
             else:
                  credentials['host'] = cleaned_data.get('host')
                  credentials['port'] = cleaned_data.get('port')
-        elif db_type == 'weaviate':
-            if cleaned_data.get('weaviate_url'):
-                credentials['url'] = cleaned_data.get('weaviate_url')
-            if cleaned_data.get('api_key'):
-                credentials['api_key'] = cleaned_data.get('api_key')
         elif db_type == 'milvus':
+            credentials = {}
             credentials['host'] = cleaned_data.get('host')
             credentials['port'] = cleaned_data.get('port')
 
-        instance.credentials = credentials
+        self.cleaned_credentials = credentials
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Use encryption method
+        if hasattr(self, 'cleaned_credentials'):
+            instance.set_credentials(self.cleaned_credentials)
         if commit:
             instance.save()
         return instance
