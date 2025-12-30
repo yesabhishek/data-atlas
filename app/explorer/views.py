@@ -122,3 +122,17 @@ def delete_connection(request, connection_id):
         connection.delete()
         messages.success(request, "Connection deleted successfully.")
     return redirect('explorer:index')
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def flush_session(request):
+    if request.method == 'POST':
+        session_key = request.session.session_key
+        if session_key:
+            # Delete connections strictly
+            ConnectionProfile.objects.filter(session_id=session_key).delete()
+            # Flush session to ensure new key on next visit
+            request.session.flush()
+    return JsonResponse({'status': 'ok'})
