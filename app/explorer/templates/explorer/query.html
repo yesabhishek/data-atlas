@@ -91,8 +91,7 @@
 
                 <div class="action-bar" style="margin-top: 1rem; display: flex; gap: 0.4rem; align-items: center;">
                     <button type="submit">Run Query</button>
-                    <button type="button" class="btn-save"
-                        onclick="document.getElementById('save-modal').style.display='flex'">Save Query</button>
+                    <button type="button" class="btn-save" onclick="initiateSaveQuery()">Save Query</button>
 
                     {% if duration is not None %}
                     <div style="margin-left: auto; color: var(--text-secondary); font-size: 0.9rem;">
@@ -149,26 +148,12 @@
     </div>
 </div>
 
-<!-- Save Query Modal -->
-<div id="save-modal" class="modal-overlay" style="display:none;">
-    <div class="modal card">
-        <h3>Save Query</h3>
-        <form method="post" action="{% url 'explorer:save_query' %}">
-            {% csrf_token %}
-            <input type="hidden" name="query" id="save-query-text">
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" name="name" required placeholder="e.g. Daily Active Users">
-            </div>
-            <div class="flex-row" style="justify-content: flex-end; gap: 0.5rem;">
-                <button type="button" class="btn-secondary"
-                    onclick="document.getElementById('save-modal').style.display='none'">Cancel</button>
-                <button type="submit"
-                    onclick="document.getElementById('save-query-text').value = editor.getValue()">Save</button>
-            </div>
-        </form>
-    </div>
-</div>
+<!-- Hidden Auto-Save Form -->
+<form id="auto-save-form" method="post" action="{% url 'explorer:save_query' %}" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="query" id="as-query">
+    <input type="hidden" name="name" id="as-name">
+</form>
 
 <style>
     .workspace-container {
@@ -323,19 +308,6 @@
         background: #fafafa;
     }
 
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
     .btn-save {
         background: transparent;
         border: 1px solid var(--border);
@@ -440,5 +412,25 @@
             editor.setValue(sql);
         }
     }
+
+    function initiateSaveQuery() {
+        if (!editor) return;
+        const sql = editor.getValue().trim();
+
+        if (!sql) {
+            alert("Cannot save an empty query. Please write some SQL first.");
+            return;
+        }
+
+        // Generate name automatically from SQL (first 50 chars)
+        let name = sql.replace(/[\n\r]+/g, ' ').substring(0, 50);
+        if (sql.length > 50) name += '...';
+
+        document.getElementById('as-query').value = sql;
+        document.getElementById('as-name').value = name;
+
+        document.getElementById('auto-save-form').submit();
+    }
 </script>
 {% endblock %}
+```
