@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import ConnectionProfile
+from .models import ConnectionProfile, TelemetryLog
 from .forms import ConnectionProfileForm
 from .services import ConnectionFactory
 import json
@@ -36,6 +36,32 @@ def add_connection(request):
                     print(f"Schema fetch failed: {e}")
                 
                 instance.save()
+                
+                # Telemetry Capture
+                try:
+                    user_agent = request.META.get('HTTP_USER_AGENT', '')
+                    device_os = 'Unknown'
+                    if 'Mac' in user_agent: device_os = 'Mac'
+                    elif 'Win' in user_agent: device_os = 'Windows'
+                    elif 'Linux' in user_agent: device_os = 'Linux'
+                    elif 'Mobile' in user_agent: device_os = 'Mobile'
+                    
+                    # Fetch storage size
+                    volume = adapter.get_storage_size()
+                    
+                    table_count = len(instance.schema_metadata.keys()) if instance.schema_metadata else 0
+                    
+                    TelemetryLog.objects.create(
+                        session_id=session_key,
+                        db_type=instance.db_type,
+                        table_count=table_count,
+                        data_volume_mb=volume,
+                        device_os=device_os,
+                        user_agent=user_agent
+                    )
+                except Exception as e:
+                    print(f"Telemetry failed: {e}")
+
                 messages.success(request, "Connection added successfully.")
                 return redirect('explorer:index')
             except Exception as e:

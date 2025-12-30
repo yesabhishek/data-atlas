@@ -13,3 +13,12 @@ class ConnectionProfileAdmin(admin.ModelAdmin):
         # We could enhance the widget for credentials here if we wanted to
         # e.g. using a JSON widget if available, or keep strictly key-value text
         return form
+
+from .models import TelemetryLog
+
+@admin.register(TelemetryLog)
+class TelemetryLogAdmin(admin.ModelAdmin):
+    list_display = ('session_id', 'db_type', 'device_os', 'data_volume_mb', 'table_count', 'created_at')
+    list_filter = ('db_type', 'device_os', 'created_at')
+    search_fields = ('session_id', 'user_agent')
+    readonly_fields = ('created_at',)

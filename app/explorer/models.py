@@ -33,10 +33,11 @@ class ConnectionProfile(models.Model):
         key = base64.urlsafe_b64encode(settings.SECRET_KEY[:32].encode().ljust(32, b'x'))
         f = Fernet(key)
         
-        json_str = json.dumps(creds_dict)
-        encrypted = f.encrypt(json_str.encode())
-        self.encrypted_credentials = encrypted.decode()
-        self.credentials = None # Clear raw json if present
+        if not creds_dict:
+            return
+
+        json_bytes = json.dumps(creds_dict).encode('utf-8')
+        self.encrypted_credentials = f.encrypt(json_bytes).decode('utf-8')
 
     def get_credentials(self):
         """Decrypts and returns credentials dict."""
@@ -57,3 +58,15 @@ class ConnectionProfile(models.Model):
         except Exception:
             return {} # Fail safe
 
+
+class TelemetryLog(models.Model):
+    session_id = models.CharField(max_length=40, db_index=True)
+    db_type = models.CharField(max_length=20)
+    table_count = models.IntegerField(default=0)
+    data_volume_mb = models.FloatField(default=0.0, help_text="Size in MB")
+    device_os = models.CharField(max_length=50, blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.session_id} - {self.db_type} - {self.created_at}"
