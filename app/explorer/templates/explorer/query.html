@@ -1,39 +1,304 @@
 {% extends 'explorer/base.html' %}
 
 {% block content %}
-<div class="card">
-    <h2>Query: {{ connection.name }} ({{ connection.get_db_type_display }})</h2>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
-
-    <div class="tabs" style="margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
-        <button type="button" class="tab-btn active" onclick="switchTab('raw')">Raw SQL / JSON</button>
-        <button type="button" class="tab-btn" onclick="switchTab('nl')">Natural Language</button>
+<!-- Connection Tabs -->
+<div class="connection-tabs">
+    {% for conn in all_connections %}
+    <a href="{% url 'explorer:query' conn.id %}" class="conn-tab {% if conn.id == connection.id %}active{% endif %}">
+        <span class="db-icon {{ conn.db_type }}"></span>
+        {{ conn.name }}
+    </a>
+    {% endfor %}
+    <a href="{% url 'explorer:index' %}" class="conn-tab new-tab">+</a>
+</div>
+<br>
+<div class="workspace-container">
+    <!-- Saved Queries Drawer (Left) -->
+    <div class="drawer" id="saved-queries-drawer">
+        <div class="drawer-header">
+            <h3>Saved Queries</h3>
+        </div>
+        <div class="drawer-content">
+            {% if saved_queries %}
+            <ul class="saved-list">
+                {% for sq in saved_queries %}
+                <li class="saved-item">
+                    <div class="saved-info" onclick="loadSavedQuery(`{{ sq.sql|escapejs }}`)">
+                        <span class="saved-name">{{ sq.name }}</span>
+                        <span class="saved-date">{{ sq.created_at|date:"M d" }}</span>
+                    </div>
+                    <form method="post" action="{% url 'explorer:delete_query' sq.id %}"
+                        onsubmit="return confirm('Delete this query?');">
+                        {% csrf_token %}
+                        <button type="submit" class="delete-btn">×</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-state">No saved queries.</p>
+            {% endif %}
+        </div>
     </div>
 
-    <form method="post" id="query-form" onsubmit="return handleQuerySubmit(event)">
-        {% csrf_token %}
-        <input type="hidden" name="mode" id="query-mode" value="raw">
+    <!-- Main Editor Area -->
+    <div class="editor-area">
+        <div class="card" style="border-top-left-radius: 0; min-height: 500px;">
+            <div class="flex-row" style="justify-content:space-between; align-items:center;">
+                <h2>{{ connection.name }} <span class="badge">{{ connection.get_db_type_display }}</span></h2>
+            </div>
 
-        <div id="tab-raw" class="tab-content" style="display:block;">
-            <textarea id="code-editor" name="query_raw" placeholder="Enter SQL or JSON here...">{{ query }}</textarea>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+            <link rel="stylesheet"
+                href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
+
+            <!-- DataTables & jQuery -->
+            <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+            <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+            <!-- DataTables Buttons -->
+            <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+            <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+            <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+            <script
+                src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+
+            <div class="tabs" style="margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                <button type="button" class="tab-btn active" onclick="switchTab('raw')">Raw SQL / JSON</button>
+                <button type="button" class="tab-btn" onclick="switchTab('nl')">Natural Language</button>
+            </div>
+
+            <form method="post" id="query-form" onsubmit="return handleQuerySubmit(event)">
+                {% csrf_token %}
+                <input type="hidden" name="mode" id="query-mode" value="raw">
+
+                <div id="tab-raw" class="tab-content" style="display:block;">
+                    <textarea id="code-editor" name="query_raw"
+                        placeholder="Enter SQL or JSON here...">{{ query }}</textarea>
+                </div>
+
+                <div id="tab-nl" class="tab-content" style="display:none;">
+                    <textarea name="query_nl" rows="5"
+                        style="width:100%; padding:1rem; font-family:sans-serif; border:1px solid var(--border); border-radius:8px;"
+                        placeholder="Ask a question in plain english... e.g. 'Show me all users created yesterday'"></textarea>
+                    <p style="color:#aaa; font-size:0.8rem; margin-top:0.5rem;">* NL Query is currently experimental
+                        (Stub).</p>
+                </div>
+
+                <div class="action-bar" style="margin-top: 1rem; display: flex; gap: 0.4rem; align-items: center;">
+                    <button type="submit">Run Query</button>
+                    <button type="button" class="btn-save"
+                        onclick="document.getElementById('save-modal').style.display='flex'">Save Query</button>
+
+                    {% if duration is not None %}
+                    <div style="margin-left: auto; color: var(--text-secondary); font-size: 0.9rem;">
+                        Time: <strong>{{ duration }}s</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+
+            {% if error %}
+            <div class="alert alert-error" style="margin-top: 1rem;">
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            {% if results is not None %}
+            <div class="results-container"
+                style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <h3>Results</h3>
+                {% if results|length > 0 %}
+                {% if results.0.keys %}
+                <div style="width:100%;">
+                    <table id="results-table" class="display nowrap" style="width:100%">
+                        <thead>
+                            <tr>
+                                {% for key in results.0.keys %}
+                                <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                            <tr>
+                                {% for value in row.values %}
+                                <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div id="json-viewer"
+                    style="background:var(--bg-secondary); padding:1rem; border-radius:8px; overflow:auto;">
+                    {{ results }}
+                </div>
+                {% endif %}
+                {% else %}
+                <p>No results found.</p>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
+    </div>
+</div>
 
-        <div id="tab-nl" class="tab-content" style="display:none;">
-            <textarea name="query_nl" rows="5"
-                style="width:100%; padding:1rem; font-family:sans-serif; border:1px solid var(--border); border-radius:8px;"
-                placeholder="Ask a question in plain english... e.g. 'Show me all users created yesterday'"></textarea>
-            <p style="color:#aaa; font-size:0.8rem; margin-top:0.5rem;">* NL Query is currently experimental (Stub).</p>
-        </div>
-
-        <button type="submit" style="margin-top: 1rem;">Run Query</button>
-    </form>
+<!-- Save Query Modal -->
+<div id="save-modal" class="modal-overlay" style="display:none;">
+    <div class="modal card">
+        <h3>Save Query</h3>
+        <form method="post" action="{% url 'explorer:save_query' %}">
+            {% csrf_token %}
+            <input type="hidden" name="query" id="save-query-text">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" required placeholder="e.g. Daily Active Users">
+            </div>
+            <div class="flex-row" style="justify-content: flex-end; gap: 0.5rem;">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('save-modal').style.display='none'">Cancel</button>
+                <button type="submit"
+                    onclick="document.getElementById('save-query-text').value = editor.getValue()">Save</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <style>
+    .workspace-container {
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-start;
+    }
+
+    .drawer {
+        width: 250px;
+        flex-shrink: 0;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    .drawer-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-secondary);
+    }
+
+    .drawer-header h3 {
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .drawer-content {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .saved-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .saved-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .saved-item:hover {
+        background: var(--bg-secondary);
+    }
+
+    .saved-info {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .saved-name {
+        display: block;
+        font-weight: 500;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .saved-date {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    .delete-btn {
+        background: none;
+        border: none;
+        color: #999;
+        font-size: 1.2rem;
+        padding: 0 0.5rem;
+        cursor: pointer;
+    }
+
+    .delete-btn:hover {
+        color: var(--error);
+    }
+
+    .editor-area {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .connection-tabs {
+        display: flex;
+        gap: 0.25rem;
+        overflow-x: auto;
+        padding-bottom: 0px;
+        margin-bottom: 0px;
+        position: relative;
+        top: 1px;
+        z-index: 1;
+    }
+
+    .conn-tab {
+        background: #e0e0e0;
+        color: var(--text-secondary);
+        padding: 0.5rem 1rem;
+        border-radius: 8px 8px 0 0;
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+        border: 1px solid transparent;
+    }
+
+    .conn-tab.active {
+        background: #fff;
+        color: var(--text-primary);
+        font-weight: 500;
+        border: 1px solid var(--border);
+        border-bottom: 1px solid #fff;
+    }
+
+    .conn-tab.new-tab {
+        background: transparent;
+        font-size: 1.2rem;
+        padding: 0 0.5rem;
+    }
+
     .tab-btn {
         background: transparent;
         border: none;
@@ -57,6 +322,41 @@
         font-size: 14px;
         background: #fafafa;
     }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .btn-save {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        font-weight: 500;
+        transition: all 0.2s;
+        border-radius: var(--radius-sm);
+        padding: 10px 20px;
+        cursor: pointer;
+    }
+
+    .btn-save:hover {
+        background: #f0f0f5;
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    .modal {
+        width: 400px;
+        max-width: 90%;
+    }
 </style>
 
 <script>
@@ -66,19 +366,28 @@
         const textArea = document.getElementById('code-editor');
         if (textArea) {
             editor = CodeMirror.fromTextArea(textArea, {
-                mode: 'text/x-sql', // Default to SQL, change if Mongo?
+                mode: 'text/x-sql',
                 theme: 'eclipse',
                 lineNumbers: true,
                 viewportMargin: Infinity
             });
-            // Ideally we detect DB type and set mode. 
-            // For now SQL is fine, JSON highlights okay in SQL mode usually or we switch.
-            // Let's check connection type from context if possible?
-            // "postgres" -> sql, "mongodb" -> javascript/json
             const dbType = "{{ connection.db_type }}";
             if (dbType === 'mongodb' || dbType === 'chromadb' || dbType === 'weaviate' || dbType === 'milvus') {
                 editor.setOption("mode", "javascript");
             }
+        }
+
+        // Init DataTables
+        if ($('#results-table').length) {
+            $('#results-table').DataTable({
+                pageLength: 100,
+                scrollX: true,
+                dom: 'Bfrtip',
+                buttons: [
+                    'csv', 'copy'
+                ]
+                // "searching": true is default
+            });
         }
     });
 
@@ -89,7 +398,6 @@
         document.getElementById('tab-' + mode).style.display = 'block';
 
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        // Find button by text or index? Simple toggle logic:
         const btns = document.querySelectorAll('.tab-btn');
         if (mode === 'raw') btns[0].classList.add('active');
         else btns[1].classList.add('active');
@@ -100,18 +408,13 @@
     }
 
     function handleQuerySubmit(event) {
-        // Check for destructive queries
         const mode = document.getElementById('query-mode').value;
         let query = "";
 
         if (mode === 'raw') {
-            if (editor) editor.save(); // Sync CM to textarea
+            if (editor) editor.save();
             query = document.getElementById('code-editor').value;
         } else {
-            // NL mode
-            // For now NL implies read usually, but if it translates to DROP... 
-            // We can't easily check NL string. Assume safe or warn?
-            // Let's check raw mostly.
             return true;
         }
 
@@ -131,44 +434,11 @@
         }
         return true;
     }
+
+    function loadSavedQuery(sql) {
+        if (editor) {
+            editor.setValue(sql);
+        }
+    }
 </script>
-
-{% if error %}
-<div class="alert alert-error">
-    <strong>Error:</strong> {{ error }}
-</div>
-{% endif %}
-
-{% if results is not None %}
-<div class="card">
-    <h3>Results</h3>
-    {% if results|length > 0 %}
-    {% if results.0.keys %}
-    <table>
-        <thead>
-            <tr>
-                {% for key in results.0.keys %}
-                <th>{{ key }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in results %}
-            <tr>
-                {% for value in row.values %}
-                <td>{{ value }}</td>
-                {% endfor %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <pre>{{ results|json_script:"results-data" }}</pre>
-    <div id="json-viewer">{{ results }}</div>
-    {% endif %}
-    {% else %}
-    <p>No results found.</p>
-    {% endif %}
-</div>
-{% endif %}
 {% endblock %}

@@ -359,13 +359,8 @@
         <p>Closing this tab or browser will flush your session data instantly.</p>
     </footer>
     <script>
-        window.addEventListener('beforeunload', function (e) {
-            // Use sendBeacon to guarantee request is sent even if tab closes
-            const data = new FormData();
-            // CSRF might be tricky with beacon, but view is csrf_exempt for this specific reason (or handled via cookie)
-            // Ideally we pass CSRF token if needed, but for session flush on unload blindly is safer for cleanup.
-            navigator.sendBeacon("{% url 'explorer:flush_session' %}", data);
-        });
+        // Session cleanup is handled via standard session expiry.
+        // Active beacon removed to prevent deletion on navigation.
     </script>
 </body>
 

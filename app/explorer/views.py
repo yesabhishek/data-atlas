@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import ConnectionProfile, TelemetryLog
+from .models import ConnectionProfile, TelemetryLog, SavedQuery
 from .forms import ConnectionProfileForm
 from .services import ConnectionFactory
 import json
+import time
 
 # from django.contrib.auth.decorators import login_required # Removed
 
@@ -80,6 +81,7 @@ def query_view(request, connection_id):
     results = None
     error = None
     query_str = ""
+    duration = None
 
     if request.method == 'POST':
         mode = request.POST.get('mode', 'raw')
@@ -88,8 +90,10 @@ def query_view(request, connection_id):
             query_str = request.POST.get('query_raw')
             if query_str:
                 try:
+                    start_time = time.time()
                     adapter = ConnectionFactory.get_adapter(connection.db_type, connection.get_credentials())
                     results = adapter.execute_query(query_str)
+                    duration = round(time.time() - start_time, 3)
                 except Exception as e:
                     error = str(e)
         elif mode == 'nl':
@@ -97,11 +101,17 @@ def query_view(request, connection_id):
             if query_str:
                 error = "Natural Language Query is not yet implemented. Please use Raw SQL."
                 
+    saved_queries = SavedQuery.objects.filter(session_id=session_key).order_by('-created_at')
+    all_connections = ConnectionProfile.objects.filter(session_id=session_key).order_by('created_at')
+
     return render(request, 'explorer/query.html', {
         'connection': connection,
         'results': results,
         'error': error,
-        'query': query_str
+        'query': query_str,
+        'saved_queries': saved_queries,
+        'all_connections': all_connections,
+        'duration': duration
     })
 
 def schema_view(request, connection_id):
@@ -159,6 +169,33 @@ def flush_session(request):
         if session_key:
             # Delete connections strictly
             ConnectionProfile.objects.filter(session_id=session_key).delete()
+            SavedQuery.objects.filter(session_id=session_key).delete()
             # Flush session to ensure new key on next visit
             request.session.flush()
     return JsonResponse({'status': 'ok'})
+
+def save_query(request):
+    session_key = get_session_key(request)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        sql = request.POST.get('query')
+        if name and sql:
+            SavedQuery.objects.create(session_id=session_key, name=name, sql=sql)
+            messages.success(request, "Query saved!")
+        else:
+            messages.error(request, "Name and Query are required.")
+    
+    # Redirect back to where we came from
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer if referer else 'explorer:index')
+
+def delete_query(request, query_id):
+    session_key = get_session_key(request)
+    query = get_object_or_404(SavedQuery, id=query_id, session_id=session_key)
+    if request.method == 'POST':
+        query.delete()
+        messages.success(request, "Query deleted.")
+    
+    # Redirect back
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer if referer else 'explorer:index')

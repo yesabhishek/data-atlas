@@ -70,3 +70,12 @@ class TelemetryLog(models.Model):
 
     def __str__(self):
         return f"{self.session_id} - {self.db_type} - {self.created_at}"
+
+class SavedQuery(models.Model):
+    session_id = models.CharField(max_length=40, db_index=True)
+    name = models.CharField(max_length=100)
+    sql = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
