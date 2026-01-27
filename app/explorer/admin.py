@@ -18,7 +18,13 @@ from .models import TelemetryLog
 
 @admin.register(TelemetryLog)
 class TelemetryLogAdmin(admin.ModelAdmin):
-    list_display = ('session_id', 'db_type', 'device_os', 'data_volume_mb', 'table_count', 'created_at')
-    list_filter = ('db_type', 'device_os', 'created_at')
-    search_fields = ('session_id', 'user_agent')
-    readonly_fields = ('created_at',)
+    list_display = ('session_id', 'db_type', 'query_count', 'time_spent', 'device_os', 'data_volume_mb', 'table_count', 'updated_at')
+    list_filter = ('db_type', 'device_os', 'created_at', 'updated_at')
+    search_fields = ('session_id', 'user_agent', 'connection_id')
+    readonly_fields = ('created_at', 'updated_at', 'time_spent')
+
+    def time_spent(self, obj):
+        if obj.updated_at and obj.created_at:
+            return obj.updated_at - obj.created_at
+        return None
+    time_spent.short_description = 'Session Duration'

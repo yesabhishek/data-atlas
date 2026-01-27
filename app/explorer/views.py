@@ -58,7 +58,8 @@ def add_connection(request):
                         table_count=table_count,
                         data_volume_mb=volume,
                         device_os=device_os,
-                        user_agent=user_agent
+                        user_agent=user_agent,
+                        connection_id=instance.id
                     )
                 except Exception as e:
                     print(f"Telemetry failed: {e}")
@@ -94,6 +95,15 @@ def query_view(request, connection_id):
                     adapter = ConnectionFactory.get_adapter(connection.db_type, connection.get_credentials())
                     results = adapter.execute_query(query_str)
                     duration = round(time.time() - start_time, 3)
+                    
+                    # Extended Telemetry
+                    try:
+                        log = TelemetryLog.objects.filter(connection_id=connection.id).first()
+                        if log:
+                            log.query_count += 1
+                            log.save()
+                    except Exception:
+                        pass
                 except Exception as e:
                     error = str(e)
         elif mode == 'nl':

@@ -11,20 +11,15 @@
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="flex-grow: 1;">
                         <h3 style="margin: 0 0 0.5rem 0;">{{ conn.name }}</h3>
-                        <span
-                            style="background: var(--accent); color: var(--bg-color); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">
-                            {{ conn.get_db_type_display }}
-                        </span>
+                        <span class="badge">{{ conn.get_db_type_display }}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <a href="{% url 'explorer:schema' conn.id %}"><button
-                                style="background:transparent; border:1px solid var(--accent); color:var(--accent);">Explore</button></a>
+                        <a href="{% url 'explorer:schema' conn.id %}"><button class="btn-secondary">Explore</button></a>
                         <a href="{% url 'explorer:query' conn.id %}"><button>Query</button></a>
                         <form method="post" action="{% url 'explorer:delete_connection' conn.id %}"
                             onsubmit="return confirm('Are you sure?');" style="margin:0;">
                             {% csrf_token %}
-                            <button type="submit"
-                                style="background: #ff4d4d; color: white; border: none; padding: 0.5rem;">X</button>
+                            <button type="submit" class="btn-ghost" style="color: var(--text-secondary);">×</button>
                         </form>
                     </div>
                 </div>
@@ -32,7 +27,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p>No connections yet. Add one to get started.</p>
+        <p style="color: var(--text-secondary);">No connections yet. Add one to get started.</p>
         {% endif %}
     </div>
 
