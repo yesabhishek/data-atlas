@@ -2,9 +2,9 @@
 
 {% block content %}
 <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2>Schema: {{ connection.name }}</h2>
-        <a href="{% url 'explorer:index' %}" class="btn">Back</a>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+        <h2 style="margin: 0;">Schema: {{ connection.name }}</h2>
+        <a href="{% url 'explorer:index' %}"><button class="btn-secondary">Back</button></a>
     </div>
 
     {% if schema %}
@@ -21,23 +21,24 @@
             <tr>
                 <td><strong>{{ table }}</strong></td>
                 <td>
-                    <small style="color:var(--text-secondary)">
+                    <span style="color: var(--text-secondary); font-size: 13px;">
                         {% if columns|length > 0 and columns.0.name %}
                         {{ columns|length }} columns ({{ columns.0.name }}, ...)
                         {% else %}
                         {{ columns }}
                         {% endif %}
-                    </small>
+                    </span>
                 </td>
                 <td>
-                    <a href="{% url 'explorer:table_data' connection.id table %}">View Data</a>
+                    <a href="{% url 'explorer:table_data' connection.id table %}" style="font-size: 13px;">View Data
+                        →</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p>No schema found or empty.</p>
+    <p style="color: var(--text-secondary);">No schema found or empty.</p>
     {% endif %}
 </div>
 {% endblock %}

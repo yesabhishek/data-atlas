@@ -66,6 +66,9 @@ class TelemetryLog(models.Model):
     data_volume_mb = models.FloatField(default=0.0, help_text="Size in MB")
     device_os = models.CharField(max_length=50, blank=True, null=True)
     user_agent = models.TextField(blank=True, null=True)
+    connection_id = models.UUIDField(null=True, blank=True)
+    query_count = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

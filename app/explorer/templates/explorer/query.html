@@ -163,7 +163,7 @@
     }
 
     .drawer {
-        width: 250px;
+        width: 220px;
         flex-shrink: 0;
         background: #fff;
         border: 1px solid var(--border);
@@ -172,18 +172,20 @@
     }
 
     .drawer-header {
-        padding: 1rem;
+        padding: 12px 16px;
         border-bottom: 1px solid var(--border);
-        background: var(--bg-secondary);
     }
 
     .drawer-header h3 {
-        font-size: 1rem;
+        font-size: 13px;
         margin: 0;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
 
     .drawer-content {
-        max-height: 600px;
+        max-height: 500px;
         overflow-y: auto;
     }
 
@@ -197,14 +199,18 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid var(--border);
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border-light);
         cursor: pointer;
-        transition: background 0.2s;
+        transition: background 0.15s;
     }
 
     .saved-item:hover {
-        background: var(--bg-secondary);
+        background: var(--hover-bg);
+    }
+
+    .saved-item:last-child {
+        border-bottom: none;
     }
 
     .saved-info {
@@ -215,7 +221,7 @@
     .saved-name {
         display: block;
         font-weight: 500;
-        font-size: 0.9rem;
+        font-size: 13px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -223,17 +229,24 @@
 
     .saved-date {
         display: block;
-        font-size: 0.75rem;
-        color: var(--text-secondary);
+        font-size: 11px;
+        color: var(--text-tertiary);
+        margin-top: 2px;
     }
 
     .delete-btn {
         background: none;
         border: none;
-        color: #999;
-        font-size: 1.2rem;
-        padding: 0 0.5rem;
+        color: var(--text-tertiary);
+        font-size: 16px;
+        padding: 0 4px;
         cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s, color 0.15s;
+    }
+
+    .saved-item:hover .delete-btn {
+        opacity: 1;
     }
 
     .delete-btn:hover {
@@ -247,7 +260,7 @@
 
     .connection-tabs {
         display: flex;
-        gap: 0.25rem;
+        gap: 4px;
         overflow-x: auto;
         padding-bottom: 0px;
         margin-bottom: 0px;
@@ -257,17 +270,23 @@
     }
 
     .conn-tab {
-        background: #e0e0e0;
+        background: transparent;
         color: var(--text-secondary);
-        padding: 0.5rem 1rem;
-        border-radius: 8px 8px 0 0;
+        padding: 8px 14px;
+        border-radius: var(--radius) var(--radius) 0 0;
         text-decoration: none;
-        font-size: 0.9rem;
+        font-size: 13px;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 6px;
         white-space: nowrap;
         border: 1px solid transparent;
+        border-bottom: none;
+        transition: all 0.15s;
+    }
+
+    .conn-tab:hover {
+        background: var(--hover-bg);
     }
 
     .conn-tab.active {
@@ -280,32 +299,47 @@
 
     .conn-tab.new-tab {
         background: transparent;
-        font-size: 1.2rem;
-        padding: 0 0.5rem;
+        font-size: 16px;
+        padding: 0 10px;
+        color: var(--text-tertiary);
+    }
+
+    .conn-tab.new-tab:hover {
+        color: var(--text-primary);
     }
 
     .tab-btn {
         background: transparent;
         border: none;
         color: var(--text-secondary);
-        padding: 0.5rem 1rem;
+        padding: 8px 12px;
         cursor: pointer;
-        font-size: 1rem;
+        font-size: 13px;
         border-bottom: 2px solid transparent;
         font-weight: 500;
+        transition: all 0.15s;
+    }
+
+    .tab-btn:hover {
+        color: var(--text-primary);
     }
 
     .tab-btn.active {
-        color: var(--accent);
+        color: var(--text-primary);
         border-bottom: 2px solid var(--accent);
     }
 
     .CodeMirror {
-        height: 300px;
+        height: 280px;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
-        font-size: 14px;
+        font-size: 13px;
+        font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
         background: #fafafa;
+    }
+
+    .CodeMirror-focused {
+        border-color: var(--text-secondary);
     }
 
     .btn-save {
@@ -313,21 +347,32 @@
         border: 1px solid var(--border);
         color: var(--text-secondary);
         font-weight: 500;
-        transition: all 0.2s;
+        transition: all 0.15s;
         border-radius: var(--radius-sm);
-        padding: 10px 20px;
+        padding: 8px 16px;
         cursor: pointer;
+        font-size: 13px;
     }
 
     .btn-save:hover {
-        background: #f0f0f5;
+        background: var(--hover-bg);
         color: var(--text-primary);
         border-color: var(--text-secondary);
     }
 
-    .modal {
-        width: 400px;
-        max-width: 90%;
+    .empty-state {
+        color: var(--text-tertiary);
+        font-size: 13px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .results-container h3 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
     }
 </style>
 

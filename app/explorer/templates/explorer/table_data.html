@@ -2,12 +2,11 @@
 
 {% block content %}
 <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2>Data: {{ table_name }} (Top 50)</h2>
-        <div>
-            <a href="{% url 'explorer:schema' connection.id %}" class="btn" style="margin-right:1rem;">Back to
-                Schema</a>
-            <a href="{% url 'explorer:query' connection.id %}" class="btn">Run Custom Query</a>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+        <h2 style="margin: 0;">{{ table_name }} <span class="badge">Top 50</span></h2>
+        <div style="display: flex; gap: 8px;">
+            <a href="{% url 'explorer:schema' connection.id %}"><button class="btn-secondary">← Schema</button></a>
+            <a href="{% url 'explorer:query' connection.id %}"><button>Run Query</button></a>
         </div>
     </div>
 
@@ -33,7 +32,7 @@
         </table>
     </div>
     {% else %}
-    <p style="color: var(--text-secondary); font-style: italic;">No data found.</p>
+    <p style="color: var(--text-secondary);">No data found.</p>
     {% endif %}
 </div>
 {% endblock %}
