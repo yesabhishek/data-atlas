@@ -9,6 +9,9 @@ dependencies = [
     "django>=6.0",
     "psycopg2-binary>=2.9.11",
     "pymilvus>=2.6.5",
-    "pymongo>=4.15.5",
-    "weaviate-client>=4.19.0",
+    "pymongo",
+    "chromadb",
+    "weaviate-client",
+    "pymilvus",
+    "cryptography",
 ]

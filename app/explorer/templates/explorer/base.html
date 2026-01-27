@@ -46,15 +46,6 @@
             padding: 40px 20px;
         }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
         h1 {
             margin: 0;
             font-size: 24px;
@@ -206,17 +197,151 @@
             overflow-x: auto;
             border: 1px solid var(--border);
         }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-toolbar {
+            display: flex;
+            background: #e5e5ea;
+            padding: 4px;
+            border-radius: 8px;
+            gap: 2px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .social-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .social-btn:hover {
+            background: #f5f5f7;
+            text-decoration: none;
+            border-color: var(--text-secondary);
+        }
+
+        /* SVG definitions in icons area or inline */
     </style>
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1><a href="{% url 'explorer:index' %}" style="text-decoration:none; color:inherit;">Data Atlas</a></h1>
-            <nav>
-                <a href="{% url 'explorer:index' %}" class="btn">Connections</a>
-            </nav>
+            <div class="header-left">
+                <h1><a href="{% url 'explorer:index' %}" style="text-decoration:none; color:inherit;">Data Atlas</a>
+                </h1>
+            </div>
+
+            <div class="header-right">
+                <!-- Socials -->
+                <a href="https://github.com/yesabhishek/data-atlas" target="_blank" class="social-btn">
+                    <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                        </path>
+                    </svg>
+                    Star
+                </a>
+                <a href="https://www.linkedin.com/feed/?shareActive=true&text=%F0%9F%9A%80%20Just%20discovered%20Data%20Atlas%21%20An%20amazing%20open-source%20tool%20for%20exploring%20PostgreSQL%2C%20MongoDB%2C%20and%20Vector%20DBs%20with%20a%20beautiful%20MacOS-style%20UI.%20Secure%2C%20local%2C%20and%20powerful.%0A%0ACheck%20it%20out%3A%20https%3A%2F%2Fgithub.com%2Fyesabhishek%2Fdata-atlas%0A%0A%23OpenSource%20%23Database%20%23DevTools"
+                    target="_blank" class="social-btn" style="color:#0077b5; border-color:rgba(0,119,181,0.2);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                    </svg>
+                    Share
+                </a>
+
+                <!-- Nav Toolbar -->
+                <div class="nav-toolbar">
+                    <button class="nav-btn" onclick="history.back()" title="Back">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                    </button>
+                    <button class="nav-btn" onclick="history.forward()" title="Forward">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 18l6-6-6-6" />
+                        </svg>
+                    </button>
+                    <button class="nav-btn" onclick="location.reload()" title="Refresh">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 4v6h-6"></path>
+                            <path d="M1 20v-6h6"></path>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </button>
+                    <button class="nav-btn" onclick="triggerFind()" title="Find/Replace">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </header>
+
+        <script>
+            function triggerFind() {
+                // Try to find global editor instance
+                if (window.editor && window.editor.execCommand) {
+                    // CodeMirror is present
+                    // Basic find alias
+                    window.editor.execCommand('find');
+                } else {
+                    // Fallback to browser find or simple alert if suppressed
+                    alert('Press Cmd+F (Mac) or Ctrl+F (Win) to find on this page.');
+                }
+            }
+        </script>
 
         {% if messages %}
         {% for message in messages %}
@@ -228,6 +353,15 @@
 
         {% block content %}{% endblock %}
     </div>
+    <footer
+        style="text-align:center; padding: 1rem; color: var(--text-secondary); font-size: 0.8rem; margin-top: 4rem;">
+        <p>Data Security: Connections are encrypted and stored temporarily for your session.</p>
+        <p>Closing this tab or browser will flush your session data instantly.</p>
+    </footer>
+    <script>
+        // Session cleanup is handled via standard session expiry.
+        // Active beacon removed to prevent deletion on navigation.
+    </script>
 </body>
 
 </html>

@@ -10,4 +10,7 @@ urlpatterns = [
     path('schema/<uuid:connection_id>/', views.schema_view, name='schema'),
     path('table/<uuid:connection_id>/<str:table_name>/', views.table_view, name='table_data'),
     path('delete/<uuid:connection_id>/', views.delete_connection, name='delete_connection'),
+    path('flush_session/', views.flush_session, name='flush_session'),
+    path('save_query/', views.save_query, name='save_query'),
+    path('delete_query/<int:query_id>/', views.delete_query, name='delete_query'),
 ]

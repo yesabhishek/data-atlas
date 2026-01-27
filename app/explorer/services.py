@@ -26,6 +26,11 @@ class BaseDBAdapter(abc.ABC):
         """Retrieve schema information."""
         pass
         
+    @abc.abstractmethod
+    def get_storage_size(self) -> float:
+        """Return proper storage size in MB."""
+        return 0.0
+
     def validate_connection(self) -> bool:
         """Validate the connection credentials."""
         # Default implementation tries to connect
@@ -97,6 +102,23 @@ class PostgresAdapter(BaseDBAdapter):
         finally:
             self.close()
 
+    def get_storage_size(self) -> float:
+        self.connect()
+        try:
+            # Get total size of the current database
+            db_name = self.credentials.get('dbname')
+            if not db_name:
+                return 0.0
+            
+            with self.connection.cursor() as cursor:
+                cursor.execute(f"SELECT pg_database_size('{db_name}');")
+                size_bytes = cursor.fetchone()[0]
+                return round(size_bytes / (1024 * 1024), 2) # Convert to MB
+        except Exception:
+            return 0.0
+        finally:
+            self.close()
+
     def close(self):
         if self.connection:
             self.connection.close()
@@ -157,11 +179,20 @@ class MongoDBAdapter(BaseDBAdapter):
                 schema[col] = []
         return schema
 
+    def get_storage_size(self) -> float:
+        self.connect()
+        try:
+            if not self.db:
+                return 0.0
+            stats = self.db.command("dbstats")
+            size_bytes = stats.get("dataSize", 0)
+            return round(size_bytes / (1024 * 1024), 2)
+        except Exception:
+            return 0.0
 
 class ChromaDBAdapter(BaseDBAdapter):
     def connect(self):
         import chromadb
-        # credentials: host, port, etc. or path for local
         host = self.credentials.get("host")
         port = self.credentials.get("port")
         path = self.credentials.get("path")
@@ -171,12 +202,10 @@ class ChromaDBAdapter(BaseDBAdapter):
         elif path:
             self.client = chromadb.PersistentClient(path=path)
         else:
-            # Default or ephemeral
             self.client = chromadb.Client()
 
     def execute_query(self, query: Union[str, Dict]) -> Any:
         self.connect()
-        # Query: {"collection": "name", "query_texts": ["search term"], "n_results": 5}
         if isinstance(query, str):
             try:
                 query_dict = json.loads(query)
@@ -190,7 +219,6 @@ class ChromaDBAdapter(BaseDBAdapter):
             return {"error": "Collection not provided"}
             
         collection = self.client.get_collection(col_name)
-        # Supports query_texts, query_embeddings, etc.
         results = collection.query(
             query_texts=query_dict.get("query_texts", []),
             n_results=query_dict.get("n_results", 5)
@@ -202,19 +230,20 @@ class ChromaDBAdapter(BaseDBAdapter):
         collections = self.client.list_collections()
         schema = {}
         for col in collections:
-            # col is a Collection object
             schema[col.name] = {"count": col.count()}
         return schema
+        
+    def get_storage_size(self) -> float:
+        # Chroma API doesn't easily give "total disk size" via client usually.
+        return 0.0
 
 
 class WeaviateAdapter(BaseDBAdapter):
     def connect(self):
         import weaviate
-        # weaviate-client v4 syntax
         url = self.credentials.get("url")
         api_key = self.credentials.get("api_key")
         
-        # Simplified connection logic for v4
         if url:
              args = {"url": url}
              if api_key:
@@ -225,7 +254,6 @@ class WeaviateAdapter(BaseDBAdapter):
 
     def execute_query(self, query: Union[str, Dict]) -> Any:
         self.connect()
-        # Query: {"collection": "Article", "near_text": "concept", "limit": 5}
         try:
             if isinstance(query, str):
                 query_dict = json.loads(query)
@@ -252,17 +280,9 @@ class WeaviateAdapter(BaseDBAdapter):
     def get_schema(self) -> Dict[str, Any]:
         self.connect()
         try:
-             # get_collections returns dict of name -> definition
-             # v4 syntax might differ slightly based on sub-version, assuming standard v4
-             # Ideally we iterate over collections.
-             # Note: list_all() might not be direct method in v4 client object, 
-             # usually we check schema or use low-level client if needed.
-             # Using simplified approach roughly compatible with v4 structure or v3 fallback logic if needed
-             # For v4: client.collections.list_all() returns dictionary-like objects
              collections = self.client.collections.list_all()
              schema = {}
              for name, col in collections.items():
-                 # simplified schema info
                  schema[name] = "Weaviate Collection"
              return schema
         finally:
@@ -271,13 +291,15 @@ class WeaviateAdapter(BaseDBAdapter):
     def close(self):
         if self.client:
             self.client.close()
+            
+    def get_storage_size(self) -> float:
+        return 0.0
 
 
 class MilvusAdapter(BaseDBAdapter):
     def connect(self):
         from pymilvus import connections
         alias = "default"
-        # Check if already connected
         if connections.has_connection(alias):
             return
             
@@ -288,7 +310,6 @@ class MilvusAdapter(BaseDBAdapter):
     def execute_query(self, query: Union[str, Dict]) -> Any:
         self.connect()
         from pymilvus import Collection
-        # Query: {"collection": "name", "data": [[...]], "anns_field": "emb", "param": {}, "limit": 10}
         
         if isinstance(query, str):
             query_dict = json.loads(query)
@@ -310,14 +331,12 @@ class MilvusAdapter(BaseDBAdapter):
             limit=limit
         )
         
-        # Parse results
         readable_results = []
         for hits in results:
             for hit in hits:
                 readable_results.append({
                     "id": hit.id,
                     "distance": hit.distance,
-                    # "entity": hit.entity.to_dict() if accessed
                 })
         return readable_results
 
@@ -329,6 +348,9 @@ class MilvusAdapter(BaseDBAdapter):
         for name in collections:
             schema[name] = {"description": "Milvus Collection"}
         return schema
+        
+    def get_storage_size(self) -> float:
+        return 0.0
 
 
 class ConnectionFactory:
