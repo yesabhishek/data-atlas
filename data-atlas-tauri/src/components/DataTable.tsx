@@ -2,15 +2,6 @@ import { useState, useEffect } from "react";
 import { RefreshCw, ChevronLeft } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 
-interface PostgresCredentials {
-    host: string;
-    port: number;
-    database: string;
-    user: string;
-    password: string;
-    sslmode: string;
-}
-
 interface QueryResult {
     columns: string[];
     rows: Record<string, unknown>[];
@@ -19,12 +10,13 @@ interface QueryResult {
 }
 
 interface DataTableProps {
-    credentials: PostgresCredentials;
+    credentials: Record<string, unknown>;
+    dbType: string;
     tableName: string;
     onBack: () => void;
 }
 
-export function DataTable({ credentials, tableName, onBack }: DataTableProps) {
+export function DataTable({ credentials, dbType, tableName, onBack }: DataTableProps) {
     const [data, setData] = useState<QueryResult | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -34,10 +26,49 @@ export function DataTable({ credentials, tableName, onBack }: DataTableProps) {
         setError("");
 
         try {
-            const result = await invoke<QueryResult>("preview_postgres_table", {
-                credentials,
-                tableName,
-            });
+            let result: QueryResult;
+
+            switch (dbType) {
+                case "postgres":
+                    result = await invoke<QueryResult>("preview_postgres_table", {
+                        credentials,
+                        tableName,
+                    });
+                    break;
+                case "mysql":
+                    result = await invoke<QueryResult>("preview_mysql_table", {
+                        credentials,
+                        tableName,
+                    });
+                    break;
+                case "mongodb":
+                    result = await invoke<QueryResult>("preview_mongodb_collection", {
+                        credentials,
+                        collectionName: tableName,
+                    });
+                    break;
+                case "sqlite":
+                    result = await invoke<QueryResult>("preview_sqlite_table", {
+                        credentials,
+                        tableName,
+                    });
+                    break;
+                case "chromadb":
+                    result = await invoke<QueryResult>("preview_chromadb_collection", {
+                        credentials,
+                        collectionName: tableName,
+                    });
+                    break;
+                case "weaviate":
+                    result = await invoke<QueryResult>("preview_weaviate_class", {
+                        credentials,
+                        className: tableName,
+                    });
+                    break;
+                default:
+                    throw new Error(`Unsupported database type: ${dbType}`);
+            }
+
             setData(result);
         } catch (e) {
             setError(String(e));
@@ -48,7 +79,11 @@ export function DataTable({ credentials, tableName, onBack }: DataTableProps) {
 
     useEffect(() => {
         fetchData();
-    }, [tableName]);
+    }, [tableName, dbType]);
+
+    const getItemLabel = () => {
+        return dbType === "mongodb" ? "documents" : "rows";
+    };
 
     return (
         <div className="data-table-container">
@@ -61,7 +96,7 @@ export function DataTable({ credentials, tableName, onBack }: DataTableProps) {
                 <div className="data-table-meta">
                     {data && (
                         <>
-                            <span>{data.row_count} rows</span>
+                            <span>{data.row_count} {getItemLabel()}</span>
                             <span className="separator">•</span>
                             <span>{data.duration_ms}ms</span>
                         </>

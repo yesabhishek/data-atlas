@@ -1517,3 +1517,180 @@ body,
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Database Type Selector */
+.db-type-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.db-type-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.db-type-option:hover {
+  border-color: var(--text-tertiary);
+  background: var(--bg-hover);
+}
+
+.db-type-option.selected {
+  border-color: var(--accent);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Database Type Initials Badge */
+.db-type-initials {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.db-type-initials.small {
+  width: 22px;
+  height: 22px;
+  font-size: 9px;
+  border-radius: 4px;
+}
+
+.db-type-initials.tab {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+  border-radius: 5px;
+}
+
+.db-type-initials.large {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+  border-radius: 10px;
+}
+
+.db-type-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.db-type-option.selected .db-type-name {
+  color: var(--text-primary);
+}
+
+/* Tab Database Logo */
+.tab-db-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Modal Large */
+.modal-lg {
+  width: 560px;
+}
+
+/* Modal Title with Logo */
+.modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-title-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Page Header with Logo */
+.page-header-with-logo {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-db-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.page-header-with-logo .page-title {
+  margin-bottom: 4px;
+}
+
+.page-header-with-logo .page-subtitle {
+  margin-bottom: 0;
+}
+
+/* Form Hints */
+.form-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+/* MongoDB Collection Input */
+.mongodb-collection-input {
+  margin-bottom: 16px;
+}
+
+.mongodb-collection-input .form-input {
+  max-width: 300px;
+}
+
+/* MongoDB Hint in Schema */
+.mongodb-hint {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Dark Theme Adjustments for Logos */
+[data-theme="dark"] .db-type-logo,
+[data-theme="dark"] .tab-db-logo,
+[data-theme="dark"] .modal-title-logo,
+[data-theme="dark"] .page-db-logo {
+  filter: brightness(1.1);
+}
+
+/* File Picker Row */
+.file-picker-row {
+  display: flex;
+  gap: 8px;
+}
+
+.file-picker-row .file-input {
+  flex: 1;
+  cursor: pointer;
+  background: var(--bg-secondary);
+}
+
+.file-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}

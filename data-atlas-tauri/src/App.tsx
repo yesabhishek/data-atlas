@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Database, Plus, Search, Settings as SettingsIcon, Table, Terminal, X, ChevronRight, RefreshCw } from "lucide-react";
+import { Plus, Search, Settings as SettingsIcon, Table, Terminal, X, ChevronRight, RefreshCw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import "./index.css";
 import { ConnectionModal } from "./components/ConnectionModal";
@@ -8,20 +8,11 @@ import { DataTable } from "./components/DataTable";
 import { QueryEditor } from "./components/QueryEditor";
 import { Settings } from "./components/Settings";
 
-interface PostgresCredentials {
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-  sslmode: string;
-}
-
 interface SavedConnection {
   id: string;
   name: string;
   db_type: string;
-  credentials: PostgresCredentials;
+  credentials: Record<string, unknown>;
 }
 
 interface TableInfo {
@@ -29,6 +20,15 @@ interface TableInfo {
 }
 
 type View = "dashboard" | "schema" | "table" | "query";
+
+const dbBranding: Record<string, { initials: string; color: string; name: string }> = {
+  postgres: { initials: "PG", color: "#336791", name: "PostgreSQL" },
+  mysql: { initials: "My", color: "#00758f", name: "MySQL" },
+  mongodb: { initials: "MO", color: "#4FAA41", name: "MongoDB" },
+  sqlite: { initials: "SL", color: "#003B57", name: "SQLite" },
+  chromadb: { initials: "CH", color: "#FF5C00", name: "ChromaDB" },
+  weaviate: { initials: "WE", color: "#FA0171", name: "Weaviate" },
+};
 
 function App() {
   const [connections, setConnections] = useState<SavedConnection[]>([]);
@@ -49,12 +49,45 @@ function App() {
     }
   };
 
-  const loadTables = async (credentials: PostgresCredentials) => {
+  const loadTables = async (connection: SavedConnection) => {
     setLoadingTables(true);
     try {
-      const schema = await invoke<{ name: string; columns: unknown[] }[]>("get_postgres_schema", {
-        credentials,
-      });
+      let schema: { name: string }[] = [];
+
+      switch (connection.db_type) {
+        case "postgres":
+          schema = await invoke<{ name: string }[]>("get_postgres_schema", {
+            credentials: connection.credentials,
+          });
+          break;
+        case "mysql":
+          schema = await invoke<{ name: string }[]>("get_mysql_schema", {
+            credentials: connection.credentials,
+          });
+          break;
+        case "mongodb":
+          const collections = await invoke<{ name: string }[]>("get_mongodb_collections", {
+            credentials: connection.credentials,
+          });
+          schema = collections;
+          break;
+        case "sqlite":
+          schema = await invoke<{ name: string }[]>("get_sqlite_schema", {
+            credentials: connection.credentials,
+          });
+          break;
+        case "chromadb":
+          schema = await invoke<{ name: string }[]>("get_chromadb_collections", {
+            credentials: connection.credentials,
+          });
+          break;
+        case "weaviate":
+          schema = await invoke<{ name: string }[]>("get_weaviate_schema", {
+            credentials: connection.credentials,
+          });
+          break;
+      }
+
       setSidebarTables(schema.map((t) => ({ name: t.name })));
     } catch (e) {
       console.error("Failed to load tables:", e);
@@ -74,7 +107,7 @@ function App() {
 
   useEffect(() => {
     if (selectedConnection) {
-      loadTables(selectedConnection.credentials);
+      loadTables(selectedConnection);
     } else {
       setSidebarTables([]);
     }
@@ -110,6 +143,13 @@ function App() {
     setCurrentView("dashboard");
   };
 
+  const getTableLabel = () => {
+    if (selectedConnection?.db_type === "mongodb") {
+      return "Collections";
+    }
+    return "Tables";
+  };
+
   const renderMainContent = () => {
     if (!selectedConnection) {
       return (
@@ -133,14 +173,24 @@ function App() {
       );
     }
 
+    const branding = dbBranding[selectedConnection.db_type] || { initials: "DB", color: "#666", name: selectedConnection.db_type };
+
     switch (currentView) {
       case "schema":
         return (
           <div className="page-content">
-            <h1 className="page-title">{selectedConnection.name}</h1>
-            <p className="page-subtitle">Explore tables and columns</p>
+            <div className="page-header-with-logo">
+              <div className="db-type-initials large" style={{ backgroundColor: branding.color }}>
+                {branding.initials}
+              </div>
+              <div>
+                <h1 className="page-title">{selectedConnection.name}</h1>
+                <p className="page-subtitle">Explore {selectedConnection.db_type === "mongodb" ? "collections" : "tables"} and {selectedConnection.db_type === "mongodb" ? "documents" : "columns"}</p>
+              </div>
+            </div>
             <SchemaExplorer
               credentials={selectedConnection.credentials}
+              dbType={selectedConnection.db_type}
               onSelectTable={handleSelectTable}
             />
           </div>
@@ -150,6 +200,7 @@ function App() {
         return (
           <DataTable
             credentials={selectedConnection.credentials}
+            dbType={selectedConnection.db_type}
             tableName={selectedTable}
             onBack={() => setCurrentView("schema")}
           />
@@ -159,9 +210,10 @@ function App() {
         return (
           <div className="page-content">
             <h1 className="page-title">Query Editor</h1>
-            <p className="page-subtitle">Run SQL queries against {selectedConnection.name}</p>
+            <p className="page-subtitle">Run queries against {selectedConnection.name}</p>
             <QueryEditor
               credentials={selectedConnection.credentials}
+              dbType={selectedConnection.db_type}
               connectionId={selectedConnection.id}
             />
           </div>
@@ -181,23 +233,28 @@ function App() {
         </div>
 
         <div className="tabs-connections">
-          {connections.map((conn) => (
-            <div
-              key={conn.id}
-              className={`tab-item ${selectedConnection?.id === conn.id ? "active" : ""}`}
-              onClick={() => handleSelectConnection(conn)}
-              title={conn.name}
-            >
-              <Database size={18} />
-              <button
-                className="tab-close"
-                onClick={(e) => handleDeleteConnection(conn.id, e)}
-                title="Remove"
+          {connections.map((conn) => {
+            const brand = dbBranding[conn.db_type] || { initials: "DB", color: "#666", name: conn.db_type };
+            return (
+              <div
+                key={conn.id}
+                className={`tab-item ${selectedConnection?.id === conn.id ? "active" : ""}`}
+                onClick={() => handleSelectConnection(conn)}
+                title={`${conn.name} (${brand.name})`}
               >
-                <X size={12} />
-              </button>
-            </div>
-          ))}
+                <div className="db-type-initials tab" style={{ backgroundColor: brand.color }}>
+                  {brand.initials}
+                </div>
+                <button
+                  className="tab-close"
+                  onClick={(e) => handleDeleteConnection(conn.id, e)}
+                  title="Remove"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          })}
 
           <button
             className="tab-add"
@@ -245,7 +302,7 @@ function App() {
 
           {/* Tables Section */}
           <div className="sidebar-section-title sidebar-tables-header">
-            Tables
+            {getTableLabel()}
             {loadingTables && <RefreshCw size={12} className="spin" />}
           </div>
 
@@ -261,7 +318,7 @@ function App() {
               </button>
             ))}
             {sidebarTables.length === 0 && !loadingTables && (
-              <div className="sidebar-empty">No tables found</div>
+              <div className="sidebar-empty">No {getTableLabel().toLowerCase()} found</div>
             )}
           </div>
         </aside>

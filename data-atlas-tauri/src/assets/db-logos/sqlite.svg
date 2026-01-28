@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <path fill="#0F80CC" d="M64 8L12 36v56l52 28 52-28V36L64 8z"/>
+  <path fill="#003B57" d="M64 8L12 36l52 28 52-28L64 8z"/>
+  <path fill="#fff" d="M64 68L12 40v52l52 28V68z"/>
+  <path fill="#0F80CC" d="M64 68l52-28v52L64 120V68z"/>
+  <text x="64" y="78" text-anchor="middle" fill="#003B57" font-family="Arial" font-size="24" font-weight="bold">SQL</text>
+</svg>

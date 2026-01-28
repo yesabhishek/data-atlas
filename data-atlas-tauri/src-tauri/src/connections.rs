@@ -20,11 +20,53 @@ fn default_sslmode() -> String {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MySqlCredentials {
+    pub host: String,
+    pub port: u16,
+    pub database: String,
+    pub user: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MongoDbCredentials {
+    pub connection_string: String,
+    pub database: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SqliteCredentials {
+    pub file_path: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChromaDbCredentials {
+    pub host: String,
+    pub port: u16,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WeaviateCredentials {
+    pub host: String,
+    pub port: u16,
+    pub api_key: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "db_type", content = "credentials")]
 pub enum ConnectionCredentials {
     #[serde(rename = "postgres")]
     Postgres(PostgresCredentials),
-    // Future: Mongo, Chroma, etc.
+    #[serde(rename = "mysql")]
+    MySql(MySqlCredentials),
+    #[serde(rename = "mongodb")]
+    MongoDb(MongoDbCredentials),
+    #[serde(rename = "sqlite")]
+    Sqlite(SqliteCredentials),
+    #[serde(rename = "chromadb")]
+    ChromaDb(ChromaDbCredentials),
+    #[serde(rename = "weaviate")]
+    Weaviate(WeaviateCredentials),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
